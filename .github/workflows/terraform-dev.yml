@@ -1,0 +1,69 @@
+name: Terraform Dev
+
+on:
+
+    pull_request:
+        paths:
+        - 'dev/**'
+        - 'modules/**'
+        - '.github/workflows/terraform-dev.yml'
+
+    push:
+        branches:
+            - main
+        paths:
+            - 'dev/**'
+            - 'modules/**'
+            - '.github/workflows/terraform-dev.yml'
+
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: terraform-dev
+    cancel-in-progress: false
+
+env:
+    TF_IN_AUTOMATION: true
+    ARM_USE_AZUREAD: true
+    ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+    ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+    ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+
+jobs:
+
+    terraform-dev:
+        name: Terraform Dev
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: dev
+        
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v4
+              with:
+                terraform_wrapper: false
+
+            - name: Terraform fmt
+              run: terraform fmt -check -recursive
+
+            - name: Terraform init
+              run: terraform init -input=false
+
+            - name: Terraform validate
+              run: terraform validate -no-color
+
+            - name: Terraform plan
+              run: terraform plan -input=false -no-color -var-file=dev.tfvars -out=tfplan
+            
+            - name: Terraform apply
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              run: terraform apply -input=false -no-color -auto-approve tfplan
