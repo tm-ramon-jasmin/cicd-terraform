@@ -4,5 +4,7 @@ terraform {
         storage_account_name = "sttfstateecbootcamp1534"
         container_name       = "tfstate"
         key = "ec-bootcamp-stg.terraform.tfstate"
+
+        use_azuread_auth = true
     }
 }
