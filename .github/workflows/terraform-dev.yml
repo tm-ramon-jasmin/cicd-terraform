@@ -54,6 +54,27 @@ jobs:
 
             - name: Terraform fmt
               run: terraform fmt -check -recursive
+            
+            - name: Debug Azure backend access
+              run: |
+                az login --service-principal \
+                  --username "$ARM_CLIENT_ID" \
+                  --password "$ARM_CLIENT_SECRET" \
+                  --tenant "$ARM_TENANT_ID"
+
+                az account set --subscription "$ARM_SUBSCRIPTION_ID"
+
+                echo "Current Azure account:"
+                az account show \
+                  --query "{subscription:id, tenant:tenantId, user:user.name}" \
+                  -o table
+
+                echo "Testing blob access:"
+                az storage blob list \
+                  --account-name sttfstateecbootcamp1534 \
+                  --container-name tfstate \
+                  --auth-mode login \
+                  -o table
 
             - name: Terraform init
               run: terraform init -input=false
